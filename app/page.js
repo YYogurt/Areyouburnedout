@@ -13,6 +13,22 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPageTransitioning, setIsPageTransitioning] = useState(false);
 
+  // Music State
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const audioRef = useRef(null);
+
+  const toggleMusic = useCallback(() => {
+    if (!audioRef.current) return;
+    if (isPlayingMusic) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch((e) => {
+        console.error("Audio playback failed", e);
+      });
+    }
+    setIsPlayingMusic(!isPlayingMusic);
+  }, [isPlayingMusic]);
+
   // Helper สำหรับเปลี่ยนหน้าจอแบบมี Transition (ไม่กระชากเหมือน refresh)
   const changeScreen = useCallback((newScreen) => {
     setIsPageTransitioning(true);
@@ -32,8 +48,16 @@ export default function Home() {
     setAnswers({});
     setCurrentQuestion(0);
     setIsTransitioning(false);
+
+    // เล่นเพลงเมื่อผู้ใช้กดเริ่ม (User Interaction ทำให้ Browser ไม่บล็อก)
+    if (audioRef.current && !isPlayingMusic) {
+      audioRef.current.play().then(() => {
+        setIsPlayingMusic(true);
+      }).catch((e) => console.log("Audio play failed", e));
+    }
+
     changeScreen("quiz");
-  }, [changeScreen]);
+  }, [changeScreen, isPlayingMusic]);
 
   // Animate card out → change question → animate card in
   const transitionQuestion = useCallback((fn) => {
@@ -79,8 +103,11 @@ export default function Home() {
 
   return (
     <main className="main-container">
-      {/* Background Music Player */}
-      <MusicPlayer />
+      {/* Background Audio Element */}
+      <audio ref={audioRef} src="/music/bgm.mp3" loop />
+      
+      {/* Background Music Player UI */}
+      <MusicPlayer isPlaying={isPlayingMusic} toggleMusic={toggleMusic} />
 
       {/* Decorative particles */}
       <Particles />
@@ -509,25 +536,9 @@ function Particles() {
 }
 
 /* ===== Music Player ===== */
-function MusicPlayer() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef(null);
-
-  const toggleMusic = () => {
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(e => {
-        console.error("Audio playback failed", e);
-        alert("กรุณาใส่ไฟล์เพลงชื่อ bgm.mp3 ไว้ในโฟลเดอร์ public/music/ ก่อนครับ");
-      });
-    }
-    setIsPlaying(!isPlaying);
-  };
-
+function MusicPlayer({ isPlaying, toggleMusic }) {
   return (
     <div className="music-player">
-      <audio ref={audioRef} src="/music/bgm.mp3" loop />
       <button className="music-btn" onClick={toggleMusic} aria-label="Toggle music" id="music-toggle-btn">
         {isPlaying ? "🔊" : "🔇"}
       </button>
