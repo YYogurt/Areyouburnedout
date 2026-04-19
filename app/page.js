@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import html2canvas from "html2canvas";
 import { questions } from "@/data/questions";
 import { getResult } from "@/data/results";
 
@@ -78,6 +79,9 @@ export default function Home() {
 
   return (
     <main className="main-container">
+      {/* Background Music Player */}
+      <MusicPlayer />
+
       {/* Decorative particles */}
       <Particles />
 
@@ -111,7 +115,12 @@ export default function Home() {
       <footer className="footer">
         <p>
           แบบประเมินนี้ไม่ใช่การวินิจฉัยทางการแพทย์ ·{" "}
-          <a href="tel:1323" id="footer-helpline">
+          <a 
+            href="https://1323alltime.camri.go.th/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            id="footer-helpline"
+          >
             สายด่วนสุขภาพจิต 1323
           </a>
         </p>
@@ -251,28 +260,60 @@ function QuizScreen({
 /* ===== Result Screen ===== */
 function ResultScreen({ result, totalScore, maxScore, onReset }) {
   const percentage = (totalScore / maxScore) * 100;
+  const resultRef = useRef(null);
+
+  const downloadBlob = (blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "my-burnout-result.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleShare = async () => {
-    const text = `ผลประเมินความ Burnout ของฉัน: ${result.emoji} ${result.title} (${totalScore}/${maxScore} คะแนน)\n\nลองทำแบบประเมินได้ที่:`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Are You Burned Out?",
-          text: text,
-          url: window.location.href,
-        });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(
-          `${text} ${window.location.href}`
-        );
-        alert("คัดลอกผลลัพธ์แล้ว!");
-      } catch {
-        // Ignore
-      }
+    if (!resultRef.current) return;
+    
+    // เปลี่ยนปุ่มเป็นสถานะกำลังโหลดได้ถ้าต้องการ แต่ที่นี่ทำให้เร็วที่สุด
+    try {
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: "#f8fafc", // Light theme background
+        scale: 2, // High resolution
+        windowWidth: 640,
+        useCORS: true,
+      });
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        
+        const file = new File([blob], "my-burnout-result.png", { type: "image/png" });
+        const shareText = `ผลประเมินความ Burnout ของฉัน: ${result.emoji} ${result.title} (${totalScore}/${maxScore} คะแนน)\n\nลองทำแบบประเมินได้ที่:`;
+        
+        // ลองใช้ Web Share API พร้อมแนบรูป
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "Are You Burned Out?",
+              text: shareText,
+              files: [file],
+            });
+          } catch (err) {
+            // User cancelled or share failed, fallback to download
+            if (err.name !== "AbortError") {
+              downloadBlob(blob);
+            }
+          }
+        } else {
+          // Fallback สำหรับ PC หรือ Browser ที่ไม่รองรับ Share API
+          downloadBlob(blob);
+          alert("บันทึกรูปผลลัพธ์ลงเครื่องเรียบร้อยแล้ว! สามารถนำไปแชร์ต่อได้เลยครับ");
+        }
+      });
+    } catch (error) {
+      console.error("Error generating image:", error);
+      alert("เกิดข้อผิดพลาดในการสร้างรูปภาพ");
     }
   };
 
@@ -281,7 +322,7 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
       className="result-section"
       id="result-section"
     >
-      <div className="result-card">
+      <div className="result-card" ref={resultRef}>
         {/* Glow effect */}
         <div
           className="result-glow"
@@ -363,18 +404,20 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
           <div className="helpline-card">
             <p className="helpline-title">{result.helpline.text}</p>
             <a
-              href={`tel:${result.helpline.number}`}
+              href="https://1323alltime.camri.go.th/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="helpline-number"
               id="helpline-number-link"
             >
-              {result.helpline.number}
+              สายด่วนสุขภาพจิต 1323
             </a>
             <p className="helpline-available">{result.helpline.available}</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="result-actions">
+        <div className="result-actions" data-html2canvas-ignore="true">
           <button
             className="share-btn"
             onClick={handleShare}
@@ -462,5 +505,32 @@ function Particles() {
         />
       ))}
     </>
+  );
+}
+
+/* ===== Music Player ===== */
+function MusicPlayer() {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  const toggleMusic = () => {
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => {
+        console.error("Audio playback failed", e);
+        alert("กรุณาใส่ไฟล์เพลงชื่อ bgm.mp3 ไว้ในโฟลเดอร์ public/music/ ก่อนครับ");
+      });
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  return (
+    <div className="music-player">
+      <audio ref={audioRef} src="/music/bgm.mp3" loop />
+      <button className="music-btn" onClick={toggleMusic} aria-label="Toggle music" id="music-toggle-btn">
+        {isPlaying ? "🔊" : "🔇"}
+      </button>
+    </div>
   );
 }
