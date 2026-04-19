@@ -17,6 +17,9 @@ export default function Home() {
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef(null);
 
+  // Prevent rapid double clicks
+  const [isProcessingAnswer, setIsProcessingAnswer] = useState(false);
+
   const toggleMusic = useCallback(() => {
     if (!audioRef.current) return;
     if (isPlayingMusic) {
@@ -48,6 +51,7 @@ export default function Home() {
     setAnswers({});
     setCurrentQuestion(0);
     setIsTransitioning(false);
+    setIsProcessingAnswer(false);
 
     // เล่นเพลงเมื่อผู้ใช้กดเริ่ม (User Interaction ทำให้ Browser ไม่บล็อก)
     if (audioRef.current && !isPlayingMusic) {
@@ -70,33 +74,42 @@ export default function Home() {
 
   const selectOption = useCallback(
     (questionId, score) => {
+      if (isProcessingAnswer) return;
+      setIsProcessingAnswer(true);
+
       setAnswers((prev) => ({ ...prev, [questionId]: score }));
 
       setTimeout(() => {
         if (currentQuestion < questions.length - 1) {
-          transitionQuestion(() => setCurrentQuestion((prev) => prev + 1));
+          transitionQuestion(() => {
+            setCurrentQuestion((prev) => prev + 1);
+            setIsProcessingAnswer(false);
+          });
         } else {
-          setScreen("result");
+          changeScreen("result");
+          setIsProcessingAnswer(false);
         }
       }, 300);
     },
-    [currentQuestion, transitionQuestion]
+    [currentQuestion, transitionQuestion, changeScreen, isProcessingAnswer]
   );
 
   const goBack = useCallback(() => {
+    if (isProcessingAnswer) return;
     if (currentQuestion > 0) {
       transitionQuestion(() => setCurrentQuestion((prev) => prev - 1));
     } else {
       changeScreen("landing");
     }
-  }, [currentQuestion, transitionQuestion, changeScreen]);
+  }, [currentQuestion, transitionQuestion, changeScreen, isProcessingAnswer]);
 
   const resetQuiz = useCallback(() => {
     changeScreen("landing");
     setTimeout(() => {
       setCurrentQuestion(0);
       setAnswers({});
-    }, 250); // รีเซ็ตค่าหลังจากหน้าจอ fade-out ไปแล้ว
+      setIsProcessingAnswer(false);
+    }, 250);
   }, [changeScreen]);
 
   const result = getResult(totalScore);
@@ -247,6 +260,7 @@ function QuizScreen({
               }`}
               onClick={() => onSelect(question.id, option.score)}
               id={`option-${question.id}-${option.label}`}
+              disabled={isTransitioning}
             >
               <span className="option-label">{option.label}</span>
               <span className="option-text">{option.text}</span>
