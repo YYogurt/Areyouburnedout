@@ -232,9 +232,6 @@ function QuizScreen({
       <div className="progress-container">
         <div className="progress-header">
           <span className="progress-text">ความคืบหน้า</span>
-          <span className="progress-count">
-            {questionIndex + 1} / {totalQuestions}
-          </span>
         </div>
         <div className="progress-bar-track">
           <div
