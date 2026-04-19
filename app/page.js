@@ -181,7 +181,7 @@ function LandingScreen({ onStart }) {
       </span>
       <h1 className="hero-title">Are You Burned Out?</h1>
       <p className="hero-subtitle">
-        แบบประเมินง่าย ๆ 6 ข้อ
+        แบบประเมินง่าย ๆ 10 ข้อ
         <br />
         เพื่อดูว่าคุณกำลัง &quot;หมดไฟ&quot; หรือแค่ &quot;เหนื่อย&quot;
       </p>

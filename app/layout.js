@@ -12,12 +12,12 @@ const notoSansThai = Noto_Sans_Thai({
 export const metadata = {
   title: "Are You Burned Out? — แบบประเมินความหมดไฟ",
   description:
-    "แบบประเมินความ Burnout ง่าย ๆ ใน 6 ข้อ เพื่อดูว่าคุณกำลังหมดไฟหรือไม่ พร้อมคำแนะนำในการดูแลตัวเอง",
+    "แบบประเมินความ Burnout ง่าย ๆ ใน 10 ข้อ เพื่อดูว่าคุณกำลังหมดไฟหรือไม่ พร้อมคำแนะนำในการดูแลตัวเอง",
   keywords: ["burnout", "หมดไฟ", "ประเมิน", "สุขภาพจิต", "mental health"],
   openGraph: {
     title: "Are You Burned Out? — แบบประเมินความหมดไฟ",
     description:
-      "แบบประเมินความ Burnout ง่าย ๆ ใน 6 ข้อ เพื่อดูว่าคุณกำลังหมดไฟหรือไม่",
+      "แบบประเมินความ Burnout ง่าย ๆ ใน 10 ข้อ เพื่อดูว่าคุณกำลังหมดไฟหรือไม่",
     type: "website",
   },
 };
