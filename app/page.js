@@ -509,7 +509,7 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
           </button>
 
           <button
-            className="btn-secondary"
+            className="btn-secondary desktop-only-btn"
             onClick={handleDownload}
             id="download-result-btn"
             style={{ justifyContent: "center" }}

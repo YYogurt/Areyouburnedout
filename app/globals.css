@@ -754,6 +754,7 @@ body::before {
   
   .result-actions { flex-direction: column; }
   .result-actions button { width: 100%; justify-content: center; }
+  .desktop-only-btn { display: none !important; }
   
   .music-player { top: 1rem; right: 1rem; }
   .music-btn { width: 40px; height: 40px; font-size: 1.25rem; }
