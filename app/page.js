@@ -17,6 +17,12 @@ export default function Home() {
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef(null);
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.2; // ลดเสียงลงเหลือ 20%
+    }
+  }, []);
+
   // Prevent rapid double clicks
   const [isProcessingAnswer, setIsProcessingAnswer] = useState(false);
 
@@ -181,7 +187,7 @@ function LandingScreen({ onStart }) {
       </span>
       <h1 className="hero-title">Are You Burned Out?</h1>
       <p className="hero-subtitle">
-        แบบประเมินง่าย ๆ 10 ข้อ
+        เพราะว่าเป็นห่วงเลยขอถามหน่อยนะ
         <br />
         เพื่อดูว่าคุณกำลัง &quot;หมดไฟ&quot; หรือแค่ &quot;เหนื่อย&quot;
       </p>
@@ -311,10 +317,26 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownload = async () => {
+    if (!resultRef.current) return;
+    try {
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: "#f8fafc",
+        scale: 2,
+        windowWidth: 640,
+        useCORS: true,
+      });
+      canvas.toBlob((blob) => {
+        if (blob) downloadBlob(blob);
+      }, "image/png");
+    } catch (error) {
+      console.error("Error generating image:", error);
+    }
+  };
+
   const handleShare = async () => {
     if (!resultRef.current) return;
     
-    // เปลี่ยนปุ่มเป็นสถานะกำลังโหลดได้ถ้าต้องการ แต่ที่นี่ทำให้เร็วที่สุด
     try {
       const canvas = await html2canvas(resultRef.current, {
         backgroundColor: "#f8fafc", // Light theme background
@@ -327,9 +349,8 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
         if (!blob) return;
         
         const file = new File([blob], "my-burnout-result.png", { type: "image/png" });
-        const shareText = `ผลประเมินความ Burnout ของฉัน: ${result.emoji} ${result.title} (${totalScore}/${maxScore} คะแนน)\n\nลองทำแบบประเมินได้ที่:`;
+        const shareText = `ผลประเมินความ Burnout ของฉัน: ${result.emoji || ""} ${result.title} (${totalScore}/${maxScore} คะแนน)\n\nลองทำแบบประเมินได้ที่:`;
         
-        // ลองใช้ Web Share API พร้อมแนบรูป
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
@@ -338,20 +359,18 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
               files: [file],
             });
           } catch (err) {
-            // User cancelled or share failed, fallback to download
+            // Cancelled or failed, fallback to download without alert
             if (err.name !== "AbortError") {
               downloadBlob(blob);
             }
           }
         } else {
-          // Fallback สำหรับ PC หรือ Browser ที่ไม่รองรับ Share API
+          // Fallback to download without alert
           downloadBlob(blob);
-          alert("บันทึกรูปผลลัพธ์ลงเครื่องเรียบร้อยแล้ว! สามารถนำไปแชร์ต่อได้เลยครับ");
         }
-      });
+      }, "image/png");
     } catch (error) {
       console.error("Error generating image:", error);
-      alert("เกิดข้อผิดพลาดในการสร้างรูปภาพ");
     }
   };
 
@@ -378,9 +397,18 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
           }}
         />
 
-        <span className="result-emoji" role="img">
-          {result.emoji}
-        </span>
+        {result.image ? (
+          <img
+            src={result.image}
+            alt={result.title}
+            className="result-image"
+            style={{ width: "120px", height: "120px", objectFit: "contain", margin: "0 auto 16px", display: "block" }}
+          />
+        ) : (
+          <span className="result-emoji" role="img">
+            {result.emoji}
+          </span>
+        )}
 
         <div className="result-score" style={{ color: result.color }}>
           {totalScore}
@@ -418,7 +446,7 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
 
         {/* Description */}
         <div className="result-description">
-          <p>{result.longDesc}</p>
+          <p style={{ whiteSpace: "pre-wrap" }}>{result.longDesc}</p>
         </div>
 
         {/* Tips */}
@@ -479,11 +507,34 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
             </svg>
             แชร์ผลลัพธ์
           </button>
+
+          <button
+            className="btn-secondary"
+            onClick={handleDownload}
+            id="download-result-btn"
+            style={{ justifyContent: "center" }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            บันทึกรูปภาพ
+          </button>
           <button
             className="btn-secondary"
             onClick={onReset}
             id="retake-quiz-btn"
-            style={{ justifyContent: "center" }}
+            style={{ justifyContent: "center", marginBottom: "16px" }}
           >
             <svg
               width="16"
@@ -502,6 +553,26 @@ function ResultScreen({ result, totalScore, maxScore, onReset }) {
             </svg>
             ทำแบบประเมินอีกครั้ง
           </button>
+          {/* Padlet Link */}
+          <div className="padlet-section" style={{ width: "100%", marginTop: "8px", textAlign: "center" }}>
+            <p style={{ marginBottom: "12px", fontSize: "1rem", color: "#64748b", fontWeight: "500" }}>
+              ไม่ต้องเก็บไว้คนเดียว ที่นี่มีพื้นที่ให้คุณเล่าได้
+            </p>
+            <a
+              href="https://padlet.com/nutthawadeechew/sandbox-jwwd2on0hfglfrcr?frame_id=page%3AZaf-9RCwr53azoIPKF-H-"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+              style={{ 
+                display: "flex", 
+                justifyContent: "center", 
+                textDecoration: "none", 
+                width: "100%" 
+              }}
+            >
+              เล่าเรื่องราวของคุณ
+            </a>
+          </div>
         </div>
       </div>
     </section>
